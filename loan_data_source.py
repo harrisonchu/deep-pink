@@ -15,8 +15,6 @@ EXAMPLE DATA
  'emp_length': '6 years',
  'fico_range_high': 1,
  'fico_range_low': 1,
- 'funded_amnt': 4350,
- 'funded_amnt_inv': 1129.09,
  'grade': 'c',
  'home_ownership': 'rent',
  'initial_list_status': 'f',
@@ -24,9 +22,6 @@ EXAMPLE DATA
  'installment': 143.53,
  'int_rate': 0.1154,
  'is_inc_v': 'not verified',
- 'last_fico_range_high': 739,
- 'last_fico_range_low': 735,
- 'last_pymnt_amnt': 10.36,
  'loan_amnt': 4350,
  'mths_since_last_delinq': 0,
  'mths_since_last_major_derog': nan,
@@ -61,7 +56,16 @@ def getCreditHistoryAgeMonths(earliestCrLine):
         return creditHistoryDays / 30
 
 def convertEmpLengthCategorical(empLength):
-	print("ER")
+	years = empLength / 12
+	if years == 0:
+		return "<1 year"
+	if years == 1:
+		return "1 year"
+	if years >= 120:
+		return "10+ years"
+	else:
+		return str(years) + " years"
+	
 
 def transform_api_response_to_standard_format(raw_data):
 	standardized = {}
@@ -71,7 +75,27 @@ def transform_api_response_to_standard_format(raw_data):
 	standardized['credit_history_age_months'] = getCreditHistoryAgeMonths(raw_data['earliestCrLine'])
 	standardized['delinq_2yrs'] = int(raw_data['delinq2Yrs'])
 	standardized['dti'] = float(raw_data['dti'])
-	standardized['emp_length'] = raw_data['empLength']
+	standardized['emp_length'] = str(convertEmpLengthCategorical(raw_data['empLength']))
+	standardized['fico_range_high'] = int(raw_data['ficoRangeHigh'])
+	standardized['fico_range_low'] = int(raw_data['ficoRangeLow'])	
+	standardized['grade'] = str(raw_data['grade'].strip().lower())
+	standardized['home_ownership'] = str(raw_data['homeOwnership'].strip().lower())	
+	standardized['initial_list_status'] = str(raw_data['initialListStatus'].strip().lower())
+	
+	inqLast6M = int(raw_data['inqLast6Mths'])
+	if inqLast6M > 0:
+		inqLast6M = 1
+	standardized['inq_last_6mths'] = inqLast6M
+
+	standardized['installment'] = float(raw_data['installment'])
+	standardized['int_rate'] = float(raw_data['intRate'])
+
+	isIncV = str(raw_data['isIncV'])
+	isIncV = isIncV.split("_")
+	isIncVParsed = isIncV[0] + " " + isIncV[1]
+	standardized['is_inc_v'] = str(isIncVParsed)
+
+	
 
 def get_loans_with_auth_key(auth):
 	headers = {'Authorization': auth}
